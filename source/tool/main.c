@@ -1,0 +1,497 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <assert.h>
+#include <stdbool.h>
+#include <Windows.h>
+#include "gl.h"
+#include <profiler/profiler.h>
+
+
+GLuint compile_shader (const char *source, GLenum gl_shader_type)
+{
+	assert (gl_shader_type != GL_INVALID_ENUM);
+	GLuint shader = glCreateShader (gl_shader_type);
+
+	GLint len = (GLint) strlen (source);
+	glShaderSource (shader, 1, (const GLchar **) &source, &len);
+	//assert (glGetError () == GL_NO_ERROR);
+
+	glCompileShader (shader);
+	//assert (glGetError () == GL_NO_ERROR);
+
+	GLint success = 0;
+	glGetShaderiv (shader, GL_COMPILE_STATUS, &success);
+	assert (glGetError () == GL_NO_ERROR);
+	//assert (success == GL_TRUE);
+
+	if (success != GL_TRUE)
+	{
+		printf ("ERROR: Failed to compile shader!\n");
+
+		int32_t max_length = 0;
+		glGetShaderiv (shader, GL_INFO_LOG_LENGTH, &max_length);
+		
+		int32_t length 	= 0;
+		char *log 	= (char *) xmalloc (sizeof (char) * max_length);
+		glGetShaderInfoLog (shader, max_length, &length, log);
+
+		printf("GLSL Error: %s\n", log);
+		free (log);
+
+		glDeleteShader (shader);
+		return (0);
+	}
+
+	return (shader);
+}
+
+void destroy_shader (GLuint shader)
+{
+	if (shader != 0)
+	{
+		glDeleteShader (shader);
+	}
+}
+
+
+
+GLuint create_shader_program ()
+{
+	return glCreateProgram ();
+}
+
+void destroy_shader_program (GLuint program)
+{
+	glDeleteProgram (program);
+}
+
+void shader_program_attach_shader (GLuint program, GLuint shader)
+{
+	glAttachShader (program, shader);
+}
+
+void link_shader_program (GLuint program)
+{
+	glLinkProgram (program);
+
+	GLint success = 0;
+	glGetProgramiv	(program, GL_LINK_STATUS, &success);
+	if (success != GL_TRUE)
+	{
+		printf ("ERROR: Failed to link shader program!\n");
+
+		int32_t max_length = 0;
+		glGetProgramiv (program, GL_INFO_LOG_LENGTH, &max_length);
+		
+		int32_t length 	= 0;
+		char *log 	= (char *) xmalloc (sizeof (char) * max_length);
+		glGetProgramInfoLog (program, max_length, &length, log);
+
+		printf("GLSL Error: %s\n", log);
+		free (log);
+		
+		glDeleteProgram (program);
+		program = 0;
+	}
+}
+
+const char vertex_shader_source [] = {
+	"#version 330\n"
+	"\n"
+	"in vec2 POSITION;\n"
+	"in vec2 TEXCOOD0;\n"
+	"in vec4 COLOR;\n"
+	"uniform mat4 prjection;\n"
+	"out vec2 uv;\n"
+	"out vec4 color;\n"
+	"void main ()\n"
+	"{\n"
+	"	gl_Position = prjection * vec4 (POSITION.xy, 0.0, 1.0);\n"
+	"	uv = TEXCOOD0;\n"
+	"	color = COLOR;\n"
+	"}\n"
+};
+
+const char pixel_shader_source [] = {
+	"#version 420\n"
+	"uniform sampler2D _texture;\n"
+	"in vec2 uv;"
+	"in vec4 color;"
+	"out vec4 out_color;\n"
+	"void main ()\n"
+	"{\n"
+	"	vec4 tc = texture (_texture, uv);"
+	"	out_color = color * tc;\n"
+	//"	out_color = clamp (color + tc, vec4 (0.0), vec4 (1.0));\n"
+	"}\n"
+};
+
+static GLuint vbo;
+static GLuint ebo;
+static GLuint shader_program;
+
+
+void *create_texture (uint8_t *pixels, uint32_t w, uint32_t h, uint32_t channels)
+{
+	GLenum format = GL_RGB;
+	switch (channels)
+	{
+		case 1:
+		{
+			format = GL_RED;
+		} break;
+
+		case 2:
+		{
+			format = GL_RG;
+		} break;
+
+		case 3:
+		{
+			format = GL_RGB;
+		} break;
+
+		case 4:
+		{
+			format = GL_RGBA;
+		} break;
+	}
+
+	GLuint texture = 0;
+	glGenTextures (1, &texture);
+	glBindTexture (GL_TEXTURE_2D, texture);
+	glTexImage2D (GL_TEXTURE_2D, 0, format, w, h, 0, format, GL_UNSIGNED_BYTE, pixels);
+	glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glBindTexture (GL_TEXTURE_2D, 0);	
+
+	printf("%u, %i\n", texture, glGetError ());
+	return (void *)(texture);
+}
+
+void user_ui_init (int32_t screen_width, int32_t screen_height)
+{
+	ui_init (screen_width, screen_height, create_texture);
+	/*ui_state.io.screen_width = screen_width;
+	ui_state.io.screen_height = screen_height;
+	ui_state.margin_vertical = 8;*/
+
+	GLuint vertex_shader = compile_shader (vertex_shader_source, GL_VERTEX_SHADER);
+	GLuint pixel_shader = compile_shader (pixel_shader_source, GL_FRAGMENT_SHADER);
+	shader_program = glCreateProgram ();
+	glAttachShader (shader_program, vertex_shader);
+	glAttachShader (shader_program, pixel_shader);
+
+	glBindAttribLocation (shader_program, 0, "POSITION");
+	glBindAttribLocation (shader_program, 1, "TEXCOOD0");
+	glBindAttribLocation (shader_program, 2, "COLOR");
+	link_shader_program (shader_program);
+
+	glGenBuffers (1, &vbo);
+	glGenBuffers (1, &ebo);
+}
+
+void user_ui_update (app_t *app)
+{
+	ui_update ();
+	ui_state.io.screen.size.x = app->size.x;
+	ui_state.io.screen.size.y = app->size.y;
+	ui_state.io.mouse.state = app->mouse_state;
+	ui_state.io.mouse.position.x = app->cursor.x;
+	ui_state.io.mouse.position.y = app->cursor.y;
+
+	/*if (ui_state.io.mouse_state == 1)
+	{
+		if (ui_state.io.hot_item == 0)
+		{
+			ui_state.io.active_window = 0;
+		}
+
+		else if (ui_state.io.active_window == ui_state.io.hot_item && ui_state.io.active_item == 0)
+		{
+			ui_window_t *window = ui_find_window_by_id (ui_state.io.active_window);
+			if (window != NULL)
+			{
+				window->x += ui_state.io.mouse_x - ui_state.last_io.mouse.position.x;
+				window->y += ui_state.io.mouse_y - ui_state.last_io.mouse.position.y;
+			}
+		}
+	}
+
+	else
+	{
+		ui_state.io.active_item = 0;
+	}
+
+	ui_state.last_io = ui_state.io;
+	ui_state.io.hot_item = 0;*/
+}
+
+void user_ui_render ()
+{
+	//ui_render ();
+
+	float width		= (float) ui_state.io.screen.size.x;
+	float height	= (float) ui_state.io.screen.size.y;
+	float projection[16] = {
+		2.0f / width,	0.0f,			0.0f, 0.0f,
+		0.0f,			2 / -height,	0.0f, 0.0f,
+		0.0f,			0.0f,			1.0f, 0.0f,
+		-1.0f,			1.0f,			0.0f, 1.0f
+	};
+
+	glViewport (0, 0, (int32_t) width, (int32_t) height);
+	glUseProgram (shader_program);
+	GLint prj_location = glGetUniformLocation (shader_program, "prjection");
+	glUniformMatrix4fv (prj_location, 1, GL_FALSE, projection);
+	
+	
+
+	GLuint vao;
+	glGenVertexArrays (1, &vao);	
+	glBindVertexArray (vao);
+	glEnable (GL_SCISSOR_TEST);
+	glEnable (GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	size_t i;
+	for (i = 0; i < array_size (ui_state.windows); ++ i)
+	{
+		ui_window_t *window = &ui_state.windows [i];
+
+		
+		int32_t y = ((int32_t) height - window->size.y) - window->position.y - 1;
+		glScissor (window->position.x - 1, y, window->size.x + 2, window->size.y + 2);
+		
+		size_t j;
+		for (j = 0; j < window->cmd_list_count; ++ j)
+		{
+			ui_cmd_buffer_t *cmd = &window->cmd_list [j];
+
+			GLuint texture = (GLuint) cmd->texture_id;
+			glActiveTexture (GL_TEXTURE0);
+			glBindTexture (GL_TEXTURE_2D, texture);
+			glUniform1i (glGetUniformLocation (shader_program, "_texture"), 0);
+
+			glBindBuffer (GL_ARRAY_BUFFER, vbo);
+			glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, ebo);
+			glBufferData (GL_ARRAY_BUFFER,			sizeof (ui_vertex_t) * cmd->vertex_count, cmd->vertices, GL_DYNAMIC_DRAW);
+			glBufferData (GL_ELEMENT_ARRAY_BUFFER,	sizeof (uint32_t) * cmd->index_count, cmd->indices, GL_DYNAMIC_DRAW);
+
+			glEnableVertexAttribArray	(0);
+			glVertexAttribPointer		(0, 2, GL_FLOAT, GL_FALSE, sizeof (ui_vertex_t), NULL);
+			glEnableVertexAttribArray	(1);
+			glVertexAttribPointer		(1, 2, GL_FLOAT, GL_FALSE, sizeof (ui_vertex_t), (void *) (sizeof (ui_vector2_t)));
+
+			glEnableVertexAttribArray	(2);
+			glVertexAttribPointer		(2, 4, GL_FLOAT, GL_FALSE, sizeof (ui_vertex_t), (void *) (sizeof (ui_vector2_t) * 2));
+
+			glDrawElements (GL_TRIANGLES, (GLsizei) cmd->index_count, GL_UNSIGNED_INT, NULL);
+		}
+	}
+	glDisable (GL_SCISSOR_TEST);
+	glDeleteVertexArrays (1, &vao);
+}
+
+
+typedef struct
+{
+	uint32_t	length;
+	char		*data;
+} string_t;
+
+typedef struct
+{
+	uint32_t id;
+	char type[4];
+
+	union
+	{
+		struct
+		{
+			string_t	filename;
+			string_t	function;
+			uint32_t	line;
+			uint32_t	thread_id;
+			int64_t		time;
+		} begin;
+
+		struct
+		{
+			uint32_t	thread_id;
+			int64_t		time;
+		} end;
+	};
+} packet_t;
+
+typedef struct
+{
+	uint32_t	last_packet_id;
+	int64_t		freq;
+	int64_t		start;
+
+	packet_t	*packets;
+	uint32_t	packet_capacity;
+	uint32_t	number_of_packets;
+} profiler_state_t;
+
+
+packet_t *add_new_packet (profiler_state_t *state)
+{
+	if (state->packets == NULL)
+	{
+		state->packet_capacity = 1024;
+		state->packets = (packet_t *) malloc (sizeof (packet_t) * state->packet_capacity);
+		state->number_of_packets = 0;
+	}
+
+	else if (state->packets != NULL && state->number_of_packets + 1 >= state->packet_capacity)
+	{
+		state->packet_capacity += 1024;
+		state->packets = (packet_t *) realloc (state->packets, sizeof (packet_t) * state->packet_capacity);
+	}
+
+	return &state->packets [state->number_of_packets ++];
+}
+
+int main(int argc, char **argv)
+{
+	assert (profiler_init (PROFILER_TYPE_SERVER, PROFILER_MAKE_ADDRESS (0, 0, 0, 0), 1672));
+	app_t app = create_app("Profiler", 1280, 720);
+
+	int32_t show = 0;
+	float red = 0.1f;
+	float green = 0.1f;
+	float blue = 0.1f;
+
+	user_ui_init (app.size.x, app.size.y);
+	float zoom = 2.0f;
+	profiler_state_t profiler_state = {0};
+
+	while (app.open)
+	{
+		update_app(&app);
+		user_ui_update (&app);
+
+		uint8_t buffer [1024] = {0};
+		int32_t data_to_read = 0;
+		while ((data_to_read = profiler_recv (buffer, 1024)) > 0)
+		{
+			uint32_t buffer_read_index = 0;
+			printf ("Data: %i\n", data_to_read);
+			uint32_t packet_id = *((uint32_t *) (buffer + buffer_read_index));
+			buffer_read_index += sizeof (uint32_t);
+
+			if (profiler_state.last_packet_id < packet_id)
+			{
+				profiler_state.last_packet_id = packet_id;
+			}
+
+
+			char *packet_type = ((char *) (buffer + buffer_read_index));
+			buffer_read_index += 4;
+
+			printf ("%.4s\n", packet_type);
+			if (strncmp (packet_type, "init", 4) == 0)
+			{
+				profiler_state.freq	= *((int64_t *) (buffer + buffer_read_index));
+				buffer_read_index	+= sizeof (int64_t);
+				profiler_state.start= *((int64_t *) (buffer + buffer_read_index));
+				buffer_read_index	+= sizeof (int64_t);
+			}
+
+			else if (strncmp (packet_type, "begn", 4) == 0)
+			{
+				packet_t *p = add_new_packet (&profiler_state);
+				p->id = packet_id;
+				CopyMemory (p->type, packet_type, 4);
+
+				p->begin.filename.length= *((uint32_t *) (buffer + buffer_read_index));
+				buffer_read_index		+= sizeof (uint32_t);
+				p->begin.filename.data	= (char *) malloc (p->begin.filename.length);
+				CopyMemory (p->begin.filename.data, buffer, p->begin.filename.length);
+				buffer_read_index		+= p->begin.filename.length;
+
+				p->begin.function.length= *((uint32_t *) (buffer + buffer_read_index));
+				buffer_read_index		+= sizeof (uint32_t);
+				p->begin.function.data	= (char *) malloc (p->begin.function.length);
+				CopyMemory (p->begin.function.data, buffer, p->begin.function.length);
+				buffer_read_index		+= p->begin.function.length;
+
+
+				p->begin.line		= *((uint32_t *) (buffer + buffer_read_index));
+				buffer_read_index	+= sizeof (uint32_t);
+
+				p->begin.thread_id	= *((uint32_t *) (buffer + buffer_read_index));
+				buffer_read_index	+= sizeof (uint32_t);
+				p->begin.time		= *((int64_t *) (buffer + buffer_read_index));
+				buffer_read_index	+= sizeof (int64_t);
+			}
+
+			else if (strncmp (packet_type, "end\0", 4) == 0)
+			{
+				packet_t *p = add_new_packet (&profiler_state);
+				p->id = packet_id;
+				CopyMemory (p->type, packet_type, 4);
+
+				p->end.thread_id	= *((uint32_t *) (buffer + buffer_read_index));
+				buffer_read_index	+= sizeof (uint32_t);
+				p->end.time			= *((int64_t *) (buffer + buffer_read_index));
+				buffer_read_index	+= sizeof (int64_t);
+			}
+		}
+
+
+		glClearColor (red, green, blue, 1.0f);
+		glClear (GL_COLOR_BUFFER_BIT);
+
+		int32_t x = 0, y = 0, w = 256, h = app.size.y;
+		ui_begin ("Sessions", &x, &y, &w, &h);
+		if (ui_button ("Quit")) 
+		{
+			app.open = false;
+		}
+
+		x = 256, y = 0, w = app.size.x - 256, h = app.size.y;
+		ui_begin ("Profiler Data", &x, &y, &w, &h);
+
+		uint32_t i;
+		for (i = 0; i < profiler_state.number_of_packets; ++ i)
+		{
+			if (strncmp (profiler_state.packets [i].type, "begn", 4) == 0)
+			{
+				int64_t elapsed = (profiler_state.packets [i].begin.time - profiler_state.start) * 1000000;
+				elapsed /= profiler_state.freq;
+				ui_rect (elapsed / 100, 0, 32);
+			}
+
+			else if (strncmp (profiler_state.packets [i].type, "end\0", 4) == 0)
+			{
+				int64_t elapsed = (profiler_state.packets [i].end.time - profiler_state.start) * 1000000;
+				elapsed /= profiler_state.freq;
+				ui_rect (elapsed / 100, 0, 32);
+			}
+		}
+		/*ui_rect (1 * zoom);
+		ui_rect (16 * zoom);
+		ui_rect (24 * zoom);
+		ui_rect (8 * zoom);
+		ui_rect (4 * zoom);
+		ui_rect (128 * zoom);
+		ui_row (64);
+		ui_rect (100 * zoom);
+		ui_rect (256 * zoom);
+		ui_rect (24 * zoom);
+		ui_rect (200 * zoom);
+		ui_rect (44 * zoom);
+		ui_row (64);*/
+		user_ui_render ();
+
+
+		app_swap_buffers (&app);
+		Sleep(16);
+	}
+
+	profiler_quit ();
+	return (0);
+}
