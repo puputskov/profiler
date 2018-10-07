@@ -1,7 +1,7 @@
 #	PROFILER
 
 ##	How to use
-```
+```C
 #include <stdio.h>
 #include <Windows.h>
 #include <profiler/profiler.h>
