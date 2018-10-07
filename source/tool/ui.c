@@ -490,8 +490,8 @@ int32_t ui_button (const char *title)
 }
 
 
-
-int32_t ui_rect (int32_t x, int32_t y, int32_t w)
+// HACK(Jyri): Get rid of the id
+int32_t ui_rect (int32_t id, int32_t x, int32_t y, int32_t w)
 {
 	ui_window_t *wnd = ui_state.current_working_window;
 
@@ -507,8 +507,8 @@ int32_t ui_rect (int32_t x, int32_t y, int32_t w)
 
 	//uint64_t id = ui_hash (title);
 	ui_vector2i_t position = wnd->current_item_position;
-	position.x += x;
 	position.y += y;
+	position.x += x;
 	//wnd->current_item_position.y += 40;
 	
 
@@ -518,10 +518,10 @@ int32_t ui_rect (int32_t x, int32_t y, int32_t w)
 
 	if (ui_is_mouse_in (position.x, position.y, width, height))
 	{
-		ui_state.hot_item = 0xFFFFFFFFFF;
+		ui_state.hot_item = id;
 		if (ui_state.io.mouse.state == 1)
 		{
-			ui_state.active_item = 0xFFFFFFFFFF;
+			ui_state.active_item = id;
 
 			background_color.x = 0.3f;
 			background_color.y = 0.3f;
@@ -544,7 +544,7 @@ int32_t ui_rect (int32_t x, int32_t y, int32_t w)
 	ui_draw_rect (position, (ui_vector2i_t) {width, height}, background_color);
 	//ui_draw_text (position, title, text_color);
 
-	return (ui_is_hot_and_active (0xFFFFFFFFFF) && ui_is_mouse_clicked ());
+	return (ui_is_hot_and_active (id) && ui_is_mouse_clicked ());
 }
 
 

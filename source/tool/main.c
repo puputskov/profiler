@@ -200,38 +200,10 @@ void user_ui_update (app_t *app)
 	ui_state.io.mouse.state = app->mouse_state;
 	ui_state.io.mouse.position.x = app->cursor.x;
 	ui_state.io.mouse.position.y = app->cursor.y;
-
-	/*if (ui_state.io.mouse_state == 1)
-	{
-		if (ui_state.io.hot_item == 0)
-		{
-			ui_state.io.active_window = 0;
-		}
-
-		else if (ui_state.io.active_window == ui_state.io.hot_item && ui_state.io.active_item == 0)
-		{
-			ui_window_t *window = ui_find_window_by_id (ui_state.io.active_window);
-			if (window != NULL)
-			{
-				window->x += ui_state.io.mouse_x - ui_state.last_io.mouse.position.x;
-				window->y += ui_state.io.mouse_y - ui_state.last_io.mouse.position.y;
-			}
-		}
-	}
-
-	else
-	{
-		ui_state.io.active_item = 0;
-	}
-
-	ui_state.last_io = ui_state.io;
-	ui_state.io.hot_item = 0;*/
 }
 
 void user_ui_render ()
 {
-	//ui_render ();
-
 	float width		= (float) ui_state.io.screen.size.x;
 	float height	= (float) ui_state.io.screen.size.y;
 	float projection[16] = {
@@ -486,12 +458,13 @@ int main(int argc, char **argv)
 					int64_t elapsed = (profiler_state.entries [i].end - profiler_state.entries [i].begin) * 1000000;
 					elapsed /= profiler_state.freq;
 
-					if (ui_rect ((elapsed_start / 100) * zoom, 64 * (profiler_state.entries[i].level - 1), (elapsed / 100) * zoom))
+					// HACK(Jyri): Get rid of the id
+					if (ui_rect (__LINE__ + i, (elapsed_start / 100) * zoom, 64 * (profiler_state.entries[i].level - 1), (elapsed / 100) * zoom))
 					{
-						/*printf ("File:      %.*s\n", profiler_state.entries [i].filename.length, profiler_state.entries [i].filename.data);
+						printf ("File:      %.*s\n", profiler_state.entries [i].filename.length, profiler_state.entries [i].filename.data);
 						printf ("Function:  %.*s\n", profiler_state.entries [i].function.length, profiler_state.entries [i].function.data);
 						printf ("Line:      %u\n", profiler_state.entries [i].line);
-						printf ("Time:      %lli\n\n", elapsed);*/
+						printf ("Time:      %lli\n\n", elapsed);
 					}
 				} break;
 			}
