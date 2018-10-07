@@ -13,7 +13,8 @@ static uint8_t				g_buffer [BUFFER_SIZE]				= {0};
 static size_t				g_write_cursor						= 0;
 static uint32_t				g_packet_id							= 0;
 static uint32_t				g_thread_ids[MAX_THREADS] 			= {0};
-static uint32_t				g_thread_level_counter[MAX_THREADS]	= {0};
+static uint32_t				g_thread_id_cursor					= 0;
+static int32_t				g_thread_level_counter[MAX_THREADS]	= {0};
 
 void reset_buffer ()
 {
@@ -93,7 +94,42 @@ void profiler_send (PROFILER_PACKET_TYPE type, const char *filename, uint32_t fi
 	LARGE_INTEGER now;
 	QueryPerformanceCounter (&now);
 	write_to_buffer (&g_packet_id, sizeof (uint32_t));
-	
+	int32_t	level = 0;
+	uint32_t i;
+	for (i = 0; i < g_thread_id_cursor; ++ i)
+	{
+		if (g_thread_ids [i] == thread_id)
+		{
+			if (type == PROFILER_PACKET_TYPE_BEGIN)
+			{
+				g_thread_level_counter [i] ++;
+				level = g_thread_level_counter;
+			}
+
+			if (type == PROFILER_PACKET_TYPE_END)
+			{
+				level = g_thread_level_counter [i];
+				g_thread_level_counter [i] --;
+
+				if (g_thread_level_counter [i] <= 0)
+				{
+					// Removes the thread id from the array
+					g_thread_level_counter [i] = g_thread_level_counter [g_thread_id_cursor - 1];
+					g_thread_ids [i] = g_thread_ids [g_thread_id_cursor - 1];
+					g_thread_level_counter [g_thread_id_cursor - 1] = 0;
+					g_thread_ids [g_thread_id_cursor - 1]  = 0;
+				}
+			}
+
+			break;
+		}
+	}
+
+	if (i == g_thread_id_cursor)
+	{
+		g_thread_ids [i] = thread_id;
+	}
+
 	switch (type)
 	{
 		case PROFILER_PACKET_TYPE_BEGIN:
@@ -105,6 +141,7 @@ void profiler_send (PROFILER_PACKET_TYPE type, const char *filename, uint32_t fi
 			write_to_buffer (function, function_size);
 			write_to_buffer (&line, sizeof (uint32_t));
 			write_to_buffer (&thread_id, sizeof (DWORD));
+			write_to_buffer (&level, sizeof (int32_t));
 			write_to_buffer (&now.QuadPart, sizeof (int64_t));
 		} break;
 
@@ -112,6 +149,7 @@ void profiler_send (PROFILER_PACKET_TYPE type, const char *filename, uint32_t fi
 		{
 			write_to_buffer ("end\0", 4);
 			write_to_buffer (&thread_id, sizeof (DWORD));
+			write_to_buffer (&level, sizeof (int32_t));
 			write_to_buffer (&now.QuadPart, sizeof (int64_t));
 		} break;
 	}

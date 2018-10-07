@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <Windows.h>
+#include <assert.h>
 #include <profiler/profiler.h>
 
 

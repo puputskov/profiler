@@ -300,29 +300,25 @@ typedef struct
 	char		*data;
 } string_t;
 
+typedef enum
+{
+	PROFILER_ENTRY_STATE_WAITING = 0,
+	PROFILER_ENTRY_STATE_FINISHED,
+} PROFILER_ENTRY_STATE;
+
 typedef struct
 {
-	uint32_t id;
-	char type[4];
+	PROFILER_ENTRY_STATE state;
 
-	union
-	{
-		struct
-		{
-			string_t	filename;
-			string_t	function;
-			uint32_t	line;
-			uint32_t	thread_id;
-			int64_t		time;
-		} begin;
+	string_t	filename;
+	string_t	function;
+	uint32_t	line;
+	uint32_t	thread_id;
+	int32_t		level;
 
-		struct
-		{
-			uint32_t	thread_id;
-			int64_t		time;
-		} end;
-	};
-} packet_t;
+	int64_t	begin;
+	int64_t	end;
+} profiler_entry_t;
 
 typedef struct
 {
@@ -330,28 +326,28 @@ typedef struct
 	int64_t		freq;
 	int64_t		start;
 
-	packet_t	*packets;
-	uint32_t	packet_capacity;
-	uint32_t	number_of_packets;
+	profiler_entry_t	*entries;
+	uint32_t			entry_capacity;
+	uint32_t			number_of_entries;
 } profiler_state_t;
 
 
-packet_t *add_new_packet (profiler_state_t *state)
+profiler_entry_t *add_new_entry (profiler_state_t *state)
 {
-	if (state->packets == NULL)
+	if (state->entries == NULL)
 	{
-		state->packet_capacity = 1024;
-		state->packets = (packet_t *) malloc (sizeof (packet_t) * state->packet_capacity);
-		state->number_of_packets = 0;
+		state->entry_capacity = 1024;
+		state->entries = (profiler_entry_t *) malloc (sizeof (profiler_entry_t) * state->entry_capacity);
+		state->number_of_entries = 0;
 	}
 
-	else if (state->packets != NULL && state->number_of_packets + 1 >= state->packet_capacity)
+	else if (state->entries != NULL && state->number_of_entries + 1 >= state->entry_capacity)
 	{
-		state->packet_capacity += 1024;
-		state->packets = (packet_t *) realloc (state->packets, sizeof (packet_t) * state->packet_capacity);
+		state->entry_capacity += 1024;
+		state->entries = (profiler_entry_t *) realloc (state->entries, sizeof (profiler_entry_t) * state->entry_capacity);
 	}
 
-	return &state->packets [state->number_of_packets ++];
+	return &state->entries [state->number_of_entries ++];
 }
 
 int main(int argc, char **argv)
@@ -402,42 +398,56 @@ int main(int argc, char **argv)
 
 			else if (strncmp (packet_type, "begn", 4) == 0)
 			{
-				packet_t *p = add_new_packet (&profiler_state);
-				p->id = packet_id;
-				CopyMemory (p->type, packet_type, 4);
+				profiler_entry_t *entry = add_new_entry (&profiler_state);
+				entry->state = PROFILER_ENTRY_STATE_WAITING;
 
-				p->begin.filename.length= *((uint32_t *) (buffer + buffer_read_index));
+				entry->filename.length= *((uint32_t *) (buffer + buffer_read_index));
 				buffer_read_index		+= sizeof (uint32_t);
-				p->begin.filename.data	= (char *) malloc (p->begin.filename.length);
-				CopyMemory (p->begin.filename.data, buffer, p->begin.filename.length);
-				buffer_read_index		+= p->begin.filename.length;
+				entry->filename.data	= (char *) malloc (entry->filename.length);
+				CopyMemory (entry->filename.data, buffer, entry->filename.length);
+				buffer_read_index		+= entry->filename.length;
 
-				p->begin.function.length= *((uint32_t *) (buffer + buffer_read_index));
+				entry->function.length= *((uint32_t *) (buffer + buffer_read_index));
 				buffer_read_index		+= sizeof (uint32_t);
-				p->begin.function.data	= (char *) malloc (p->begin.function.length);
-				CopyMemory (p->begin.function.data, buffer, p->begin.function.length);
-				buffer_read_index		+= p->begin.function.length;
+				entry->function.data	= (char *) malloc (entry->function.length);
+				CopyMemory (entry->function.data, buffer, entry->function.length);
+				buffer_read_index		+= entry->function.length;
 
-
-				p->begin.line		= *((uint32_t *) (buffer + buffer_read_index));
+				entry->line		= *((uint32_t *) (buffer + buffer_read_index));
 				buffer_read_index	+= sizeof (uint32_t);
 
-				p->begin.thread_id	= *((uint32_t *) (buffer + buffer_read_index));
+				entry->thread_id	= *((uint32_t *) (buffer + buffer_read_index));
 				buffer_read_index	+= sizeof (uint32_t);
-				p->begin.time		= *((int64_t *) (buffer + buffer_read_index));
-				buffer_read_index	+= sizeof (int64_t);
+
+				entry->level		= *((int32_t *) (buffer + buffer_read_index));
+				buffer_read_index	+= sizeof (int32_t);
+
+				entry->begin		= *((int64_t *) (buffer + buffer_read_index));
+				buffer_read_index	+= sizeof (int64_t);				
 			}
 
 			else if (strncmp (packet_type, "end\0", 4) == 0)
 			{
-				packet_t *p = add_new_packet (&profiler_state);
-				p->id = packet_id;
-				CopyMemory (p->type, packet_type, 4);
-
-				p->end.thread_id	= *((uint32_t *) (buffer + buffer_read_index));
+				uint32_t thread_id	= *((uint32_t *) (buffer + buffer_read_index));
 				buffer_read_index	+= sizeof (uint32_t);
-				p->end.time			= *((int64_t *) (buffer + buffer_read_index));
+				int32_t level		= *((int32_t *) (buffer + buffer_read_index));
+				buffer_read_index	+= sizeof (int32_t);
+				int64_t time		= *((int64_t *) (buffer + buffer_read_index));
 				buffer_read_index	+= sizeof (int64_t);
+
+
+				uint32_t i;
+				for (i = 0; i < profiler_state.number_of_entries; ++ i)
+				{
+					if (profiler_state.entries [i].state == PROFILER_ENTRY_STATE_WAITING &&
+						profiler_state.entries [i].thread_id == thread_id &&
+						profiler_state.entries [i].level == level)
+					{
+						profiler_state.entries [i].state = PROFILER_ENTRY_STATE_FINISHED;
+						profiler_state.entries [i].end = time;
+						break;
+					}
+				}
 			}
 		}
 
@@ -456,35 +466,26 @@ int main(int argc, char **argv)
 		ui_begin ("Profiler Data", &x, &y, &w, &h);
 
 		uint32_t i;
-		for (i = 0; i < profiler_state.number_of_packets; ++ i)
+		for (i = 0; i < profiler_state.number_of_entries; ++ i)
 		{
-			if (strncmp (profiler_state.packets [i].type, "begn", 4) == 0)
+			switch (profiler_state.entries [i].state)
 			{
-				int64_t elapsed = (profiler_state.packets [i].begin.time - profiler_state.start) * 1000000;
-				elapsed /= profiler_state.freq;
-				ui_rect (elapsed / 100, 0, 32);
-			}
+				case PROFILER_ENTRY_STATE_WAITING:
+				{
 
-			else if (strncmp (profiler_state.packets [i].type, "end\0", 4) == 0)
-			{
-				int64_t elapsed = (profiler_state.packets [i].end.time - profiler_state.start) * 1000000;
-				elapsed /= profiler_state.freq;
-				ui_rect (elapsed / 100, 0, 32);
+				} break;
+
+				case PROFILER_ENTRY_STATE_FINISHED:
+				{
+					int64_t elapsed_start = (profiler_state.entries [i].begin - profiler_state.start) * 1000000;
+					elapsed_start /= profiler_state.freq;
+
+					int64_t elapsed = (profiler_state.entries [i].end - profiler_state.entries [i].begin) * 1000000;
+					elapsed /= profiler_state.freq;
+					ui_rect (elapsed_start / 100, 0, elapsed / 100);
+				} break;
 			}
 		}
-		/*ui_rect (1 * zoom);
-		ui_rect (16 * zoom);
-		ui_rect (24 * zoom);
-		ui_rect (8 * zoom);
-		ui_rect (4 * zoom);
-		ui_rect (128 * zoom);
-		ui_row (64);
-		ui_rect (100 * zoom);
-		ui_rect (256 * zoom);
-		ui_rect (24 * zoom);
-		ui_rect (200 * zoom);
-		ui_rect (44 * zoom);
-		ui_row (64);*/
 		user_ui_render ();
 
 
