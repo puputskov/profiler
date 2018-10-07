@@ -7,7 +7,7 @@ void say_hello (const char *name)
 {
 	PROFILER_BEGIN()
 	printf ("Hello %s!\n", name);
-	Sleep (rand () % 1);
+	Sleep (rand () % 100);
 	PROFILER_END()
 }
 

@@ -429,7 +429,26 @@ int main(int argc, char **argv)
 			x_offset += (app.cursor.x - last_x);
 		}
 
-		zoom += app.wheel_delta;
+		if (zoom > 1.0f)
+		{
+			zoom += app.wheel_delta;
+		}
+
+		else if (zoom > 0.5f)
+		{
+			zoom += app.wheel_delta * 0.1f;
+		}
+
+		else if (zoom >= 0.01f)
+		{
+			zoom += app.wheel_delta * 0.01f;
+			if (zoom <= 0.01f)
+			{
+				zoom = 0.01f;
+			}
+		}
+
+		
 
 
 		glClearColor (red, green, blue, 1.0f);
@@ -464,7 +483,7 @@ int main(int argc, char **argv)
 					elapsed /= profiler_state.freq;
 
 					// HACK(Jyri): Get rid of the id
-					if (ui_rect (__LINE__ + i, x_offset + (elapsed_start / 100) * zoom, 64 * (profiler_state.entries[i].level - 1), (elapsed / 100) * zoom))
+					if (ui_rect (__LINE__ + i, (float)x_offset + ((float)elapsed_start / 100.0f) * zoom, 64 * (profiler_state.entries[i].level - 1), ((float)elapsed / 100.0f) * zoom))
 					{
 						printf ("File:      %.*s\n", profiler_state.entries [i].filename.length, profiler_state.entries [i].filename.data);
 						printf ("Function:  %.*s\n", profiler_state.entries [i].function.length, profiler_state.entries [i].function.data);
