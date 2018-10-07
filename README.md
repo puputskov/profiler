@@ -4,6 +4,7 @@
 ```C
 #include <stdio.h>
 #include <Windows.h>
+#include <assert.h>
 #include <profiler/profiler.h>
 
 int main (int argc, const char **argv)
@@ -25,3 +26,4 @@ int main (int argc, const char **argv)
 
 ## Tool
 ![alt text](documents/images/tool_ui.png?raw=true "Tool UI")
+![alt text](documents/images/tool_ui_with_data.png?raw=true "Tool UI with data")
