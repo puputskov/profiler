@@ -1,7 +1,8 @@
 #	PROFILER
 
 ##	How to use
-`#include <stdio.h>
+```
+#include <stdio.h>
 #include <Windows.h>
 #include <profiler/profiler.h>
 
@@ -19,7 +20,8 @@ int main (int argc, const char **argv)
 
 	profiler_quit ();
 	return (0);
-}`
+}
+```
 
 ## Tool
 ![alt text](documents/images/tool_ui.png?raw=true "Tool UI")
