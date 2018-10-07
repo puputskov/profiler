@@ -74,6 +74,7 @@ typedef struct
 
 	POINT		cursor;
 	uint8_t		mouse_state;
+	int32_t		wheel_delta;
 } app_t;
 
 app_t create_app(const char *title, int32_t width, int32_t height)
@@ -201,6 +202,10 @@ app_t create_app(const char *title, int32_t width, int32_t height)
 	app.size = (POINT){ width, height };
 	app.hdc = device_context;
 	app.hglrc = render_context;
+	app.cursor = (POINT){0};
+	app.mouse_state = 0;
+	app.wheel_delta = 0;
+
 	return (app);
 }
 
@@ -212,6 +217,7 @@ void app_swap_buffers (app_t *app)
 
 void update_app(app_t *app)
 {
+	app->wheel_delta = 0;
 	int32_t result = 0;
 	MSG msg = { 0 };
 	while (result = PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -261,6 +267,21 @@ void update_app(app_t *app)
 
 			case WM_MOUSEMOVE:
 			{
+				app->cursor = (POINT) {msg.lParam & 0xFFFF, (msg.lParam >> 16) & 0xFFFF};
+			} break;
+
+			case WM_MOUSEWHEEL:
+			{
+				app->wheel_delta = GET_WHEEL_DELTA_WPARAM (msg.wParam);
+				if (app->wheel_delta < 0)
+				{
+					app->wheel_delta = -1;
+				}
+
+				else if (app->wheel_delta > 0)
+				{
+					app->wheel_delta = 1;
+				}
 				app->cursor = (POINT) {msg.lParam & 0xFFFF, (msg.lParam >> 16) & 0xFFFF};
 			} break;
 		}

@@ -404,14 +404,15 @@ int main(int argc, char **argv)
 				entry->filename.length= *((uint32_t *) (buffer + buffer_read_index));
 				buffer_read_index		+= sizeof (uint32_t);
 				entry->filename.data	= (char *) malloc (entry->filename.length);
-				CopyMemory (entry->filename.data, buffer, entry->filename.length);
+				CopyMemory (entry->filename.data, buffer + buffer_read_index, entry->filename.length);
 				buffer_read_index		+= entry->filename.length;
 
 				entry->function.length= *((uint32_t *) (buffer + buffer_read_index));
 				buffer_read_index		+= sizeof (uint32_t);
 				entry->function.data	= (char *) malloc (entry->function.length);
-				CopyMemory (entry->function.data, buffer, entry->function.length);
+				CopyMemory (entry->function.data, buffer + buffer_read_index, entry->function.length);
 				buffer_read_index		+= entry->function.length;
+
 
 				entry->line		= *((uint32_t *) (buffer + buffer_read_index));
 				buffer_read_index	+= sizeof (uint32_t);
@@ -423,7 +424,7 @@ int main(int argc, char **argv)
 				buffer_read_index	+= sizeof (int32_t);
 
 				entry->begin		= *((int64_t *) (buffer + buffer_read_index));
-				buffer_read_index	+= sizeof (int64_t);				
+				buffer_read_index	+= sizeof (int64_t);	
 			}
 
 			else if (strncmp (packet_type, "end\0", 4) == 0)
@@ -450,6 +451,8 @@ int main(int argc, char **argv)
 				}
 			}
 		}
+
+		zoom += app.wheel_delta;
 
 
 		glClearColor (red, green, blue, 1.0f);
@@ -482,13 +485,19 @@ int main(int argc, char **argv)
 
 					int64_t elapsed = (profiler_state.entries [i].end - profiler_state.entries [i].begin) * 1000000;
 					elapsed /= profiler_state.freq;
-					ui_rect (elapsed_start / 100, 0, elapsed / 100);
+
+					if (ui_rect ((elapsed_start / 100) * zoom, 64 * (profiler_state.entries[i].level - 1), (elapsed / 100) * zoom))
+					{
+						/*printf ("File:      %.*s\n", profiler_state.entries [i].filename.length, profiler_state.entries [i].filename.data);
+						printf ("Function:  %.*s\n", profiler_state.entries [i].function.length, profiler_state.entries [i].function.data);
+						printf ("Line:      %u\n", profiler_state.entries [i].line);
+						printf ("Time:      %lli\n\n", elapsed);*/
+					}
 				} break;
 			}
 		}
+
 		user_ui_render ();
-
-
 		app_swap_buffers (&app);
 		Sleep(16);
 	}

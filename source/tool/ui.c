@@ -514,7 +514,7 @@ int32_t ui_rect (int32_t x, int32_t y, int32_t w)
 
 	int32_t width = w;
 	int32_t height = 48;
-	wnd->current_item_position.x += w;
+	//wnd->current_item_position.x += w;
 
 	if (ui_is_mouse_in (position.x, position.y, width, height))
 	{

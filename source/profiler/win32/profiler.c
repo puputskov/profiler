@@ -103,7 +103,7 @@ void profiler_send (PROFILER_PACKET_TYPE type, const char *filename, uint32_t fi
 			if (type == PROFILER_PACKET_TYPE_BEGIN)
 			{
 				g_thread_level_counter [i] ++;
-				level = g_thread_level_counter;
+				level = g_thread_level_counter[i];
 			}
 
 			if (type == PROFILER_PACKET_TYPE_END)
@@ -127,7 +127,10 @@ void profiler_send (PROFILER_PACKET_TYPE type, const char *filename, uint32_t fi
 
 	if (i == g_thread_id_cursor)
 	{
-		g_thread_ids [i] = thread_id;
+		g_thread_ids [g_thread_id_cursor] = thread_id;
+		g_thread_level_counter [g_thread_id_cursor] = 1;
+		level = g_thread_level_counter [g_thread_id_cursor];
+		g_thread_id_cursor++;
 	}
 
 	switch (type)
