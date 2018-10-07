@@ -334,10 +334,13 @@ int main(int argc, char **argv)
 
 	user_ui_init (app.size.x, app.size.y);
 	float zoom = 2.0f;
+	int32_t x_offset = 0;
 	profiler_state_t profiler_state = {0};
+	int32_t last_x = 0;
 
 	while (app.open)
 	{
+		last_x = app.cursor.x;
 		update_app(&app);
 		user_ui_update (&app);
 
@@ -346,7 +349,6 @@ int main(int argc, char **argv)
 		while ((data_to_read = profiler_recv (buffer, 1024)) > 0)
 		{
 			uint32_t buffer_read_index = 0;
-			printf ("Data: %i\n", data_to_read);
 			uint32_t packet_id = *((uint32_t *) (buffer + buffer_read_index));
 			buffer_read_index += sizeof (uint32_t);
 
@@ -358,8 +360,6 @@ int main(int argc, char **argv)
 
 			char *packet_type = ((char *) (buffer + buffer_read_index));
 			buffer_read_index += 4;
-
-			printf ("%.4s\n", packet_type);
 			if (strncmp (packet_type, "init", 4) == 0)
 			{
 				profiler_state.freq	= *((int64_t *) (buffer + buffer_read_index));
@@ -424,6 +424,11 @@ int main(int argc, char **argv)
 			}
 		}
 
+		if (app.mouse_state & APP_MOUSE_STATE_BUTTON_RIGHT)
+		{
+			x_offset += (app.cursor.x - last_x);
+		}
+
 		zoom += app.wheel_delta;
 
 
@@ -459,7 +464,7 @@ int main(int argc, char **argv)
 					elapsed /= profiler_state.freq;
 
 					// HACK(Jyri): Get rid of the id
-					if (ui_rect (__LINE__ + i, (elapsed_start / 100) * zoom, 64 * (profiler_state.entries[i].level - 1), (elapsed / 100) * zoom))
+					if (ui_rect (__LINE__ + i, x_offset + (elapsed_start / 100) * zoom, 64 * (profiler_state.entries[i].level - 1), (elapsed / 100) * zoom))
 					{
 						printf ("File:      %.*s\n", profiler_state.entries [i].filename.length, profiler_state.entries [i].filename.data);
 						printf ("Function:  %.*s\n", profiler_state.entries [i].function.length, profiler_state.entries [i].function.data);
