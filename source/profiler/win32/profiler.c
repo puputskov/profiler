@@ -21,10 +21,7 @@ static int32_t				g_thread_level_counter[MAX_THREADS]	= {0};
 
 int32_t profiler_init (PROFILER_TYPE type, uint32_t address, uint16_t port)
 {
-	g_buffer.data	= g_buffer_data;
-	g_buffer.size	= BUFFER_SIZE;
-	g_buffer.cursor	= 0;
-
+	profiler_init_buffer (&g_buffer, g_buffer_data, BUFFER_SIZE);
 	WSADATA wsa_data = {0};
 	assert (WSAStartup (MAKEWORD (2, 2), &wsa_data) == 0);
 	
@@ -161,6 +158,18 @@ int32_t profiler_recv (void *data, int32_t max_size)
 	return recvfrom (g_socket, data, max_size, 0, (struct sockaddr *) &tmp, &size);
 }
 
+void profiler_init_buffer (profiler_buffer_t *buffer, void *begin, size_t size)
+{
+	if (buffer == NULL)
+	{
+		// @TODO(Jyri): Set error
+		return;
+	}
+
+	buffer->data	= begin;
+	buffer->size	= size;
+	buffer->cursor	= 0;
+}
 
 void profiler_buffer_reset (profiler_buffer_t *buffer)
 {

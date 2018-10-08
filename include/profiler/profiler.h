@@ -38,6 +38,7 @@ int32_t	profiler_quit	();
 void	profiler_send	(PROFILER_PACKET_TYPE type, const char *filename, uint32_t filename_size, const char *function, uint32_t function_size, uint32_t line);
 int32_t	profiler_recv	(void *data, int32_t max_size);
 
+void	profiler_init_buffer	(profiler_buffer_t *buffer, void *begin, size_t size);
 void 	profiler_buffer_reset	(profiler_buffer_t *buffer);
 int32_t	profiler_buffer_write	(profiler_buffer_t *buffer, const void *data, int32_t size);
 int32_t	profiler_buffer_read	(profiler_buffer_t *buffer, void *to, int32_t size);
