@@ -132,7 +132,7 @@ static GLuint ebo;
 static GLuint shader_program;
 
 
-void *create_texture (uint8_t *pixels, uint32_t w, uint32_t h, uint32_t channels)
+GLuint create_texture (uint8_t *pixels, uint32_t w, uint32_t h, uint32_t channels)
 {
 	GLenum format = GL_RGB;
 	switch (channels)
@@ -165,14 +165,12 @@ void *create_texture (uint8_t *pixels, uint32_t w, uint32_t h, uint32_t channels
 	glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glBindTexture (GL_TEXTURE_2D, 0);	
-
-	printf("%u, %i\n", texture, glGetError ());
-	return (void *)(texture);
+	return (texture);
 }
 
 void user_ui_init (int32_t screen_width, int32_t screen_height)
 {
-	ui_init (screen_width, screen_height, create_texture);
+	ui_init (screen_width, screen_height, (ui_create_texture_callback_t) create_texture);
 	/*ui_state.io.screen_width = screen_width;
 	ui_state.io.screen_height = screen_height;
 	ui_state.margin_vertical = 8;*/
@@ -483,7 +481,7 @@ int main(int argc, char **argv)
 					elapsed /= profiler_state.freq;
 
 					// HACK(Jyri): Get rid of the id
-					if (ui_rect (__LINE__ + i, (float)x_offset + ((float)elapsed_start / 100.0f) * zoom, 64 * (profiler_state.entries[i].level - 1), ((float)elapsed / 100.0f) * zoom))
+					if (ui_rect (__LINE__ + i, x_offset + (int32_t)(((float)elapsed_start / 100.0f) * zoom), 64 * (profiler_state.entries[i].level - 1), (int32_t)(((float)elapsed / 100.0f) * zoom)))
 					{
 						printf ("File:      %.*s\n", profiler_state.entries [i].filename.length, profiler_state.entries [i].filename.data);
 						printf ("Function:  %.*s\n", profiler_state.entries [i].function.length, profiler_state.entries [i].function.data);

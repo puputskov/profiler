@@ -51,7 +51,7 @@ void say_hello (const char *name)
 
 int main (int argc, const char **argv)
 {
-	srand (time (NULL));
+	srand ((int32_t) time (NULL));
 	assert (profiler_init (PROFILER_TYPE_PROFILER, PROFILER_MAKE_ADDRESS (127, 0, 0, 1), 1672));
 
 	PROFILER_BEGIN()

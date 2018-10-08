@@ -77,8 +77,6 @@ uint64_t ui_hash (const char *str)
 }
 
 
-typedef void *ui_texture_id_t;
-
 typedef struct 
 {
 	int32_t x, y;
@@ -118,7 +116,7 @@ typedef struct
 
 typedef struct
 {
-	ui_texture_id_t texture_id;
+	uint32_t texture_id;
 	ui_vertex_t		*vertices;
 	uint32_t		*indices;
 	uint32_t		vertex_count;
@@ -162,12 +160,12 @@ typedef struct
 
 typedef struct
 {
-	ui_texture_id_t	texture_id;
+	uint32_t	texture_id;
 	stbtt_bakedchar	cdata[96];
 } ui_font_t;
 
 
-typedef void *(*ui_create_texture_callback_t)(uint8_t *pixels, uint32_t w, uint32_t h, uint32_t channels);
+typedef uint32_t (*ui_create_texture_callback_t)(uint8_t *pixels, uint32_t w, uint32_t h, uint32_t channels);
 typedef struct
 {
 	ui_io_t			io;
@@ -184,7 +182,7 @@ typedef struct
 	uint64_t		hot_window;
 	uint64_t		active_window;
 	ui_font_t		font;
-	ui_texture_id_t	no_texture;
+	uint32_t		no_texture;
 
 	struct
 	{
@@ -193,7 +191,7 @@ typedef struct
 } ui_state_t;
 static ui_state_t ui_state;
 
-void ui_push_texture (ui_texture_id_t texture)
+void ui_push_texture (uint32_t texture)
 {
 	ui_window_t *wnd = ui_state.current_working_window;
 	if (wnd->cmd_list_count > 0)
@@ -261,12 +259,12 @@ ui_vector2i_t ui_draw_text (ui_vector2i_t position, const char *title, ui_vector
 
 
 
-	int32_t x = 0;
-	int32_t y = 0;
+	float x = 0;
+	float y = 0;
 	int32_t line = 0;
 
 	ui_cmd_buffer_t *cmd = &ui_state.current_working_window->cmd_list [ui_state.current_working_window->cmd_list_count - 1];
-	char *text = title;
+	const char *text = title;
 	while (*text != 0)
 	{
 		if (*text == '\n')
@@ -279,41 +277,25 @@ ui_vector2i_t ui_draw_text (ui_vector2i_t position, const char *title, ui_vector
 		{
 			stbtt_aligned_quad q;
 			stbtt_GetBakedQuad (ui_state.font.cdata, 512, 512, (*text - 32), &x, &y, &q, 1);
-			ui_draw_rect_uv ((ui_vector2i_t) {q.x0 + position.x, q.y0 + position.y}, (ui_vector2i_t) {(q.x1 - q.x0), (q.y1 - q.y0)}, (ui_vector4_t){q.s0, q.t0, q.s1, q.t1}, color);
-
-			/*array_push (cmd->vertices, ((ui_vertex_t) {{q.x0 + position.x, q.y0 + position.y}, 	{q.s0, q.t0}, color}));
-			array_push (cmd->vertices, ((ui_vertex_t) {{q.x1 + position.x, q.y0 + position.y}, 	{q.s1, q.t0}, color}));
-			array_push (cmd->vertices, ((ui_vertex_t) {{q.x1 + position.x, q.y1 + position.y}, 	{q.s1, q.t1}, color}));
-			array_push (cmd->vertices, ((ui_vertex_t) {{q.x0 + position.x, q.y1 + position.y}, 	{q.s0, q.t1}, color}));
-
-			array_push (cmd->indices, cmd->vertex_count + 0);
-			array_push (cmd->indices, cmd->vertex_count + 1);
-			array_push (cmd->indices, cmd->vertex_count + 2);
-			array_push (cmd->indices, cmd->vertex_count + 2);
-			array_push (cmd->indices, cmd->vertex_count + 3);
-			array_push (cmd->indices, cmd->vertex_count + 0);
-
-			cmd->vertex_count += 4;
-			cmd->index_count += 6;*/
-
+			ui_draw_rect_uv ((ui_vector2i_t) {(int32_t)q.x0 + position.x, (int32_t)q.y0 + position.y}, (ui_vector2i_t) {(int32_t)(q.x1 - q.x0), (int32_t)(q.y1 - q.y0)}, (ui_vector4_t){q.s0, q.t0, q.s1, q.t1}, color);
 			if (q.x1 > result.x)
 			{
-				result.x = q.x1;
+				result.x = (int32_t) q.x1;
 			}
 
 			else if (q.x0 > result.x)
 			{
-				result.x = q.x0;
+				result.x = (int32_t) q.x0;
 			}
 
 			if (q.y1 > result.y)
 			{
-				result.y = q.y1;
+				result.y = (int32_t) q.y1;
 			}
 
 			else if (q.y0 > result.y)
 			{
-				result.y = q.y0;
+				result.y = (int32_t) q.y0;
 			}
 		}
 
@@ -565,9 +547,9 @@ void ui_check_box (const char *str, int32_t *value)
 	int32_t width = 24;
 	int32_t height = 24;
 
-	ui_vector4_t border_color = {0.2f, 0.2f, 0.2f, 1.0f};
-	ui_vector4_t bg_color = {0.4f, 0.4f, 0.4f, 1.0f};
-	ui_vector4_t text_color			= {0.0f, 0.0f, 0.0f, 1.0f}; 
+	ui_vector4_t border_color	= {0.2f, 0.2f, 0.2f, 1.0f};
+	ui_vector4_t bg_color		= {0.4f, 0.4f, 0.4f, 1.0f};
+	ui_vector4_t text_color		= {0.0f, 0.0f, 0.0f, 1.0f}; 
 
 	position.x -= 8;
 	ui_vector2i_t text_size = ui_draw_text (position, str, text_color);
