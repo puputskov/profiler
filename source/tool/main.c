@@ -342,28 +342,28 @@ int main(int argc, char **argv)
 		update_app(&app);
 		user_ui_update (&app);
 
-		uint8_t buffer [1024] = {0};
+		uint8_t buffer_data [1024] = {0};
 		int32_t data_to_read = 0;
-		while ((data_to_read = profiler_recv (buffer, 1024)) > 0)
+		while ((data_to_read = profiler_recv (buffer_data, 1024)) > 0)
 		{
+			profiler_buffer_t buffer = {0};
+			profiler_init_buffer (&buffer, buffer_data, data_to_read);
 			uint32_t buffer_read_index = 0;
-			uint32_t packet_id = *((uint32_t *) (buffer + buffer_read_index));
-			buffer_read_index += sizeof (uint32_t);
 
+			uint32_t packet_id = 0;
+			profiler_buffer_read (&buffer, &packet_id, sizeof (uint32_t));
 			if (profiler_state.last_packet_id < packet_id)
 			{
 				profiler_state.last_packet_id = packet_id;
 			}
 
 
-			char *packet_type = ((char *) (buffer + buffer_read_index));
-			buffer_read_index += 4;
+			char packet_type[4] = {0};
+			profiler_buffer_read (&buffer, packet_type, 4);
 			if (strncmp (packet_type, "init", 4) == 0)
 			{
-				profiler_state.freq	= *((int64_t *) (buffer + buffer_read_index));
-				buffer_read_index	+= sizeof (int64_t);
-				profiler_state.start= *((int64_t *) (buffer + buffer_read_index));
-				buffer_read_index	+= sizeof (int64_t);
+				profiler_buffer_read (&buffer, &profiler_state.freq, sizeof (int64_t));
+				profiler_buffer_read (&buffer, &profiler_state.start, sizeof (int64_t));
 			}
 
 			else if (strncmp (packet_type, "begn", 4) == 0)
@@ -371,40 +371,28 @@ int main(int argc, char **argv)
 				profiler_entry_t *entry = add_new_entry (&profiler_state);
 				entry->state = PROFILER_ENTRY_STATE_WAITING;
 
-				entry->filename.length= *((uint32_t *) (buffer + buffer_read_index));
-				buffer_read_index		+= sizeof (uint32_t);
-				entry->filename.data	= (char *) malloc (entry->filename.length);
-				CopyMemory (entry->filename.data, buffer + buffer_read_index, entry->filename.length);
-				buffer_read_index		+= entry->filename.length;
+				profiler_buffer_read (&buffer, &entry->filename.length, sizeof (uint32_t));
+				entry->filename.data = (char *) malloc (entry->filename.length);
+				profiler_buffer_read (&buffer, entry->filename.data, entry->filename.length);
 
-				entry->function.length= *((uint32_t *) (buffer + buffer_read_index));
-				buffer_read_index		+= sizeof (uint32_t);
-				entry->function.data	= (char *) malloc (entry->function.length);
-				CopyMemory (entry->function.data, buffer + buffer_read_index, entry->function.length);
-				buffer_read_index		+= entry->function.length;
+				profiler_buffer_read (&buffer, &entry->function.length, sizeof (uint32_t));
+				entry->function.data = (char *) malloc (entry->function.length);
+				profiler_buffer_read (&buffer, entry->function.data, entry->function.length);
 
-
-				entry->line		= *((uint32_t *) (buffer + buffer_read_index));
-				buffer_read_index	+= sizeof (uint32_t);
-
-				entry->thread_id	= *((uint32_t *) (buffer + buffer_read_index));
-				buffer_read_index	+= sizeof (uint32_t);
-
-				entry->level		= *((int32_t *) (buffer + buffer_read_index));
-				buffer_read_index	+= sizeof (int32_t);
-
-				entry->begin		= *((int64_t *) (buffer + buffer_read_index));
-				buffer_read_index	+= sizeof (int64_t);	
+				profiler_buffer_read (&buffer, &entry->line,		sizeof (uint32_t));
+				profiler_buffer_read (&buffer, &entry->thread_id,	sizeof (uint32_t));
+				profiler_buffer_read (&buffer, &entry->level,		sizeof (int32_t));
+				profiler_buffer_read (&buffer, &entry->begin,		sizeof (int64_t));
 			}
 
 			else if (strncmp (packet_type, "end\0", 4) == 0)
 			{
-				uint32_t thread_id	= *((uint32_t *) (buffer + buffer_read_index));
-				buffer_read_index	+= sizeof (uint32_t);
-				int32_t level		= *((int32_t *) (buffer + buffer_read_index));
-				buffer_read_index	+= sizeof (int32_t);
-				int64_t time		= *((int64_t *) (buffer + buffer_read_index));
-				buffer_read_index	+= sizeof (int64_t);
+				uint32_t thread_id	= 0;
+				int32_t level		= 0;
+				int64_t time		= 0;
+				profiler_buffer_read (&buffer, &thread_id,	sizeof (uint32_t));
+				profiler_buffer_read (&buffer, &level,		sizeof (int32_t));
+				profiler_buffer_read (&buffer, &time,		sizeof (int64_t));
 
 
 				uint32_t i;
