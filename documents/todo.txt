@@ -1,0 +1,14 @@
+profiler.c:
+	[]	Make library to be thread save
+	{
+		[]	remove global variables that should not be shared between threads
+		[]	replace operations on variables that are shared between threads to
+			atomic operations
+	}
+
+	[]	Error reporting system
+	{
+		[]	create enum of errors
+		[]	set_error (error)
+		[]	get_last_error ()
+	}
