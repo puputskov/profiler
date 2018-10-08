@@ -5,6 +5,7 @@ Init packet:
 	freq				8
 	start_time			8
 
+	total size:	24
 
 Begin of entry packet:
 	name			value	size
@@ -19,6 +20,7 @@ Begin of entry packet:
 	level					4
 	now						8
 
+	total size:	36 + [filename_size] + [function_size]
 
 End of entry packet:
 	name			value	size
@@ -27,4 +29,6 @@ End of entry packet:
 	thread_id				4
 	level					4
 	now						8
+
+	total size:	24
 
