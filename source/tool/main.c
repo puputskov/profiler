@@ -487,22 +487,22 @@ int main(int argc, char **argv)
 
 		if (selected != -1)
 		{
-			ui_draw_rect_std (app.cursor.x + 30 - 1, app.cursor.y - 1, 512 + 2, 96 + 2, 0, 0, 0, 1);
-			ui_draw_rect_std (app.cursor.x + 30, app.cursor.y, 512, 96, 1.0f, 1.0f, 1.0f, 1);
+			ui_draw_rect_std (256, app.size.y - 98, app.size.x - 256, 96 + 2, 0, 0, 0, 1);
+			ui_draw_rect_std (257, app.size.y - 97, app.size.x - 256 - 2, 96, 1.0f, 1.0f, 1.0f, 1);
 			
 			char str_buffer [1024] = {0};
-			ui_draw_text ((ui_vector2i_t) {app.cursor.x + 32, app.cursor.y}, "File: ", (ui_vector4_t) {0.0f, 0.0f, 0.0f, 1.0f});
-			ui_draw_text ((ui_vector2i_t) {app.cursor.x + 128, app.cursor.y}, profiler_state.entries [selected].filename.data, (ui_vector4_t) {0.0f, 0.0f, 0.0f, 1.0f});
-			ui_draw_text ((ui_vector2i_t) {app.cursor.x + 32, app.cursor.y + 24}, "Function: ", (ui_vector4_t) {0.0f, 0.0f, 0.0f, 1.0f});
-			ui_draw_text ((ui_vector2i_t) {app.cursor.x + 128, app.cursor.y + 24}, profiler_state.entries [selected].function.data, (ui_vector4_t) {0.0f, 0.0f, 0.0f, 1.0f});
+			ui_draw_text ((ui_vector2i_t) {257 + 32, app.size.y - 98}, "File: ", (ui_vector4_t) {0.0f, 0.0f, 0.0f, 1.0f});
+			ui_draw_text ((ui_vector2i_t) {257 + 128, app.size.y - 98}, profiler_state.entries [selected].filename.data, (ui_vector4_t) {0.0f, 0.0f, 0.0f, 1.0f});
+			ui_draw_text ((ui_vector2i_t) {257 + 32, app.size.y - 98 + 24}, "Function: ", (ui_vector4_t) {0.0f, 0.0f, 0.0f, 1.0f});
+			ui_draw_text ((ui_vector2i_t) {257 + 128, app.size.y - 98 + 24}, profiler_state.entries [selected].function.data, (ui_vector4_t) {0.0f, 0.0f, 0.0f, 1.0f});
 
 			sprintf (str_buffer, "%i", profiler_state.entries [selected].line);
-			ui_draw_text ((ui_vector2i_t) {app.cursor.x + 32, app.cursor.y + 48}, "Line: ", (ui_vector4_t) {0.0f, 0.0f, 0.0f, 1.0f});
-			ui_draw_text ((ui_vector2i_t) {app.cursor.x + 128, app.cursor.y + 48}, str_buffer, (ui_vector4_t) {0.0f, 0.0f, 0.0f, 1.0f});
+			ui_draw_text ((ui_vector2i_t) {257 + 32, app.size.y - 98 + 48}, "Line: ", (ui_vector4_t) {0.0f, 0.0f, 0.0f, 1.0f});
+			ui_draw_text ((ui_vector2i_t) {257 + 128, app.size.y - 98 + 48}, str_buffer, (ui_vector4_t) {0.0f, 0.0f, 0.0f, 1.0f});
 
 			sprintf (str_buffer, "%lli", profiler_state.entries [selected].end - profiler_state.entries [selected].begin);
-			ui_draw_text ((ui_vector2i_t) {app.cursor.x + 32, app.cursor.y + 72}, "Ticks: ", (ui_vector4_t) {0.0f, 0.0f, 0.0f, 1.0f});
-			ui_draw_text ((ui_vector2i_t) {app.cursor.x + 128, app.cursor.y + 72}, str_buffer, (ui_vector4_t) {0.0f, 0.0f, 0.0f, 1.0f});
+			ui_draw_text ((ui_vector2i_t) {257 + 32, app.size.y - 98 + 72}, "Ticks: ", (ui_vector4_t) {0.0f, 0.0f, 0.0f, 1.0f});
+			ui_draw_text ((ui_vector2i_t) {257 + 128, app.size.y - 98 + 72}, str_buffer, (ui_vector4_t) {0.0f, 0.0f, 0.0f, 1.0f});
 
 		}
 

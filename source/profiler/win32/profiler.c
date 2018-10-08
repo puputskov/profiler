@@ -9,9 +9,6 @@ static SOCKET				g_socket							= INVALID_SOCKET;
 static struct sockaddr_in	g_addr								= {0};
 static LARGE_INTEGER		g_freq								= {0};
 static LARGE_INTEGER		g_start_time						= {0};
-static uint8_t				g_buffer_data [BUFFER_SIZE]			= {0};
-static profiler_buffer_t	g_buffer							= {0};
-
 
 static uint32_t				g_packet_id							= 0;
 static uint32_t				g_thread_ids[MAX_THREADS] 			= {0};
@@ -21,7 +18,6 @@ static int32_t				g_thread_level_counter[MAX_THREADS]	= {0};
 
 int32_t profiler_init (PROFILER_TYPE type, uint32_t address, uint16_t port)
 {
-	profiler_init_buffer (&g_buffer, g_buffer_data, BUFFER_SIZE);
 	WSADATA wsa_data = {0};
 	assert (WSAStartup (MAKEWORD (2, 2), &wsa_data) == 0);
 	
@@ -52,6 +48,10 @@ int32_t profiler_init (PROFILER_TYPE type, uint32_t address, uint16_t port)
 
 	if (type == PROFILER_TYPE_PROFILER)
 	{
+		uint8_t g_buffer_data [BUFFER_SIZE]	= {0};
+		profiler_buffer_t g_buffer			= {0};
+		profiler_init_buffer (&g_buffer, g_buffer_data, BUFFER_SIZE);
+
 		QueryPerformanceFrequency	(&g_freq);
 		QueryPerformanceCounter		(&g_start_time);
 
@@ -76,7 +76,10 @@ int32_t profiler_quit ()
 
 void profiler_send (PROFILER_PACKET_TYPE type, const char *filename, uint32_t filename_size, const char *function, uint32_t function_size, uint32_t line)
 {
-	profiler_buffer_reset (&g_buffer);
+	uint8_t g_buffer_data [BUFFER_SIZE]	= {0};
+	profiler_buffer_t g_buffer			= {0};
+	profiler_init_buffer (&g_buffer, g_buffer_data, BUFFER_SIZE);	
+	//profiler_buffer_reset (&g_buffer);
 
 	uint32_t thread_id			= GetCurrentThreadId ();
 	//DWORD processor_number	= GetCurrentProcessorNumber ();
