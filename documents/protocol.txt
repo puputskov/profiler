@@ -1,0 +1,30 @@
+Init packet:
+	name		value	size
+	id					4
+	type		"init"	4
+	freq				8
+	start_time			8
+
+
+Begin of entry packet:
+	name			value	size
+	id						4
+	type			"begn"	4
+	filename_size			4
+	filename				[filename_size]
+	function_size			4
+	function				[function_size]
+	line					4
+	thread_id				4
+	level					4
+	now						8
+
+
+End of entry packet:
+	name			value	size
+	id						4
+	type			"end\0"	4
+	thread_id				4
+	level					4
+	now						8
+
