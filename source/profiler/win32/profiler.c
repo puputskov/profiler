@@ -57,8 +57,8 @@ int32_t profiler_init (PROFILER_TYPE type, uint32_t address, uint16_t port)
 
 		profiler_buffer_write (&g_buffer, &g_packet_id, sizeof (uint32_t));
 		profiler_buffer_write (&g_buffer, "init", 4);
-		profiler_buffer_write (&g_buffer, &g_freq, sizeof (LARGE_INTEGER));
-		profiler_buffer_write (&g_buffer, &g_start_time, sizeof (LARGE_INTEGER));
+		profiler_buffer_write (&g_buffer, &g_freq.QuadPart, sizeof (int64_t));
+		profiler_buffer_write (&g_buffer, &g_start_time.QuadPart,sizeof (int64_t));
 
 		int32_t size = (int32_t) sizeof (struct sockaddr);
 		assert (sendto (g_socket, g_buffer.data, (int32_t) g_buffer.cursor, 0, (struct sockaddr *) &g_addr, size) != -1);
@@ -78,7 +78,9 @@ void profiler_send (PROFILER_PACKET_TYPE type, const char *filename, uint32_t fi
 {
 	profiler_buffer_reset (&g_buffer);
 
-	DWORD thread_id		= GetCurrentThreadId ();
+	uint32_t thread_id			= GetCurrentThreadId ();
+	//DWORD processor_number	= GetCurrentProcessorNumber ();
+
 	LARGE_INTEGER now;
 	QueryPerformanceCounter (&now);
 	profiler_buffer_write (&g_buffer, &g_packet_id, sizeof (uint32_t));
@@ -131,7 +133,7 @@ void profiler_send (PROFILER_PACKET_TYPE type, const char *filename, uint32_t fi
 			profiler_buffer_write (&g_buffer, &function_size, sizeof (uint32_t));
 			profiler_buffer_write (&g_buffer, function, function_size);
 			profiler_buffer_write (&g_buffer, &line, sizeof (uint32_t));
-			profiler_buffer_write (&g_buffer, &thread_id, sizeof (DWORD));
+			profiler_buffer_write (&g_buffer, &thread_id, sizeof (uint32_t));
 			profiler_buffer_write (&g_buffer, &level, sizeof (int32_t));
 			profiler_buffer_write (&g_buffer, &now.QuadPart, sizeof (int64_t));
 		} break;
@@ -139,7 +141,7 @@ void profiler_send (PROFILER_PACKET_TYPE type, const char *filename, uint32_t fi
 		case PROFILER_PACKET_TYPE_END:
 		{
 			profiler_buffer_write (&g_buffer, "end\0", 4);
-			profiler_buffer_write (&g_buffer, &thread_id, sizeof (DWORD));
+			profiler_buffer_write (&g_buffer, &thread_id, sizeof (uint32_t));
 			profiler_buffer_write (&g_buffer, &level, sizeof (int32_t));
 			profiler_buffer_write (&g_buffer, &now.QuadPart, sizeof (int64_t));
 		} break;

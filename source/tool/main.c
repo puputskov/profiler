@@ -359,7 +359,7 @@ int main(int argc, char **argv)
 			}
 
 
-			char packet_type[4] = {0};
+			char packet_type[4] = {0};	// This could be an uint32_t
 			profiler_buffer_read (&buffer, packet_type, 4);
 			if (strncmp (packet_type, "init", 4) == 0)
 			{
