@@ -365,6 +365,7 @@ int main(int argc, char **argv)
 			{
 				profiler_buffer_read (&buffer, &profiler_state.freq, sizeof (int64_t));
 				profiler_buffer_read (&buffer, &profiler_state.start, sizeof (int64_t));
+				printf("%lli\n", profiler_state.freq);
 			}
 
 			else if (strncmp (packet_type, "begn", 4) == 0)
@@ -503,7 +504,6 @@ int main(int argc, char **argv)
 			sprintf (str_buffer, "%lli", profiler_state.entries [selected].end - profiler_state.entries [selected].begin);
 			ui_draw_text ((ui_vector2i_t) {257 + 32, app.size.y - 98 + 72}, "Ticks: ", (ui_vector4_t) {0.0f, 0.0f, 0.0f, 1.0f});
 			ui_draw_text ((ui_vector2i_t) {257 + 128, app.size.y - 98 + 72}, str_buffer, (ui_vector4_t) {0.0f, 0.0f, 0.0f, 1.0f});
-
 		}
 
 		user_ui_render ();
